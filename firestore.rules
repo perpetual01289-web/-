@@ -1,0 +1,328 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core security primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'perpetual01289@gmail.com';
+    }
+
+    function isValidOperationalStatus(status) {
+      return status in [
+        'جاهز للتشغيل',
+        'صالح للتشغيل مع وجود نواقص تجهيز',
+        'تحت الصيانة',
+        'يحتاج إلى تجهيز',
+        'متوقف عن التشغيل'
+      ];
+    }
+
+    // User profile validation
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 256
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.role in ['admin', 'supervisor']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Vehicle validation
+    function isValidVehicle(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'internalCode', 'commonName', 'brandType',
+          'modelYear', 'plateNumber', 'vin', 'engineSerial', 'color',
+          'seatsCount', 'imageUrl', 'operationalStatus', 'notes',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'internalCode', 'commonName', 'brandType',
+          'modelYear', 'plateNumber', 'vin', 'engineSerial', 'color',
+          'seatsCount', 'imageUrl', 'operationalStatus', 'notes',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.internalCode is string && data.internalCode.size() >= 1 && data.internalCode.size() <= 40
+        && data.commonName is string && data.commonName.size() >= 1 && data.commonName.size() <= 120
+        && data.brandType is string && data.brandType.size() >= 1 && data.brandType.size() <= 120
+        && data.modelYear is string && data.modelYear.size() <= 40
+        && data.plateNumber is string && data.plateNumber.size() <= 40
+        && data.vin is string && data.vin.size() <= 64
+        && data.engineSerial is string && data.engineSerial.size() <= 64
+        && data.color is string && data.color.size() <= 40
+        && (data.seatsCount is int || data.seatsCount is float) && data.seatsCount >= 0 && data.seatsCount <= 120
+        && data.imageUrl is string && data.imageUrl.size() <= 2048
+        && isValidOperationalStatus(data.operationalStatus)
+        && data.notes is string && data.notes.size() <= 4000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Vehicle media fallback validation
+    function isValidVehicleMedia(data) {
+      return data.keys().hasAll(['vehicleId', 'ownerId', 'dataUrl', 'updatedAt'])
+        && data.keys().hasOnly(['vehicleId', 'ownerId', 'dataUrl', 'updatedAt'])
+        && isValidId(data.vehicleId)
+        && isValidId(data.ownerId)
+        && data.dataUrl is string && data.dataUrl.size() >= 1 && data.dataUrl.size() <= 900000
+        && data.updatedAt is timestamp;
+    }
+
+    // Maintenance form validation
+    function isValidReviewChecklist(checklist) {
+      return checklist is map
+        && checklist.keys().hasAll([
+          'allWorkCompleted',
+          'busTestedAfterRepair',
+          'equipmentVerified',
+          'additionalNotesReviewed',
+          'readyForOperationApproved'
+        ])
+        && checklist.keys().hasOnly([
+          'allWorkCompleted',
+          'busTestedAfterRepair',
+          'equipmentVerified',
+          'additionalNotesReviewed',
+          'readyForOperationApproved'
+        ])
+        && checklist.allWorkCompleted is bool
+        && checklist.busTestedAfterRepair is bool
+        && checklist.equipmentVerified is bool
+        && checklist.additionalNotesReviewed is bool
+        && checklist.readyForOperationApproved is bool;
+    }
+
+    function isValidVehicleSnapshot(snap) {
+      return snap is map
+        && snap.keys().hasAll([
+          'internalCode', 'commonName', 'brandType', 'modelYear',
+          'plateNumber', 'vin', 'engineSerial', 'color',
+          'seatsCount', 'imageUrl', 'operationalStatus'
+        ])
+        && snap.keys().hasOnly([
+          'internalCode', 'commonName', 'brandType', 'modelYear',
+          'plateNumber', 'vin', 'engineSerial', 'color',
+          'seatsCount', 'imageUrl', 'operationalStatus'
+        ])
+        && snap.internalCode is string && snap.internalCode.size() <= 40
+        && snap.commonName is string && snap.commonName.size() <= 120
+        && snap.brandType is string && snap.brandType.size() <= 120
+        && snap.modelYear is string && snap.modelYear.size() <= 40
+        && snap.plateNumber is string && snap.plateNumber.size() <= 40
+        && snap.vin is string && snap.vin.size() <= 64
+        && snap.engineSerial is string && snap.engineSerial.size() <= 64
+        && snap.color is string && snap.color.size() <= 40
+        && (snap.seatsCount is int || snap.seatsCount is float) && snap.seatsCount >= 0 && snap.seatsCount <= 120
+        && snap.imageUrl is string && snap.imageUrl.size() <= 2048
+        && isValidOperationalStatus(snap.operationalStatus);
+    }
+
+    function isValidMaintenanceItemsList(items) {
+      return items is list
+        && items.size() <= 150
+        && (
+          items.size() == 0
+          || (
+            items[0] is map
+            && items[0].keys().hasAll(['id', 'title', 'category', 'status', 'notes', 'order'])
+            && items[0].keys().hasOnly(['id', 'title', 'category', 'status', 'notes', 'order'])
+            && items[0].id is string && items[0].id.size() <= 80
+            && items[0].title is string && items[0].title.size() <= 300
+            && items[0].category is string && items[0].category.size() <= 120
+            && items[0].status in ['لم يبدأ', 'قيد التنفيذ', 'تم التنفيذ', 'يحتاج إلى متابعة', 'مؤجل']
+            && items[0].notes is string && items[0].notes.size() <= 1000
+            && (items[0].order is int || items[0].order is float)
+          )
+        );
+    }
+
+    function isValidMaintenanceForm(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'vehicleId', 'serialNumber', 'formStatus',
+          'startDate', 'endDate', 'vehicleSnapshot', 'statusAfterMaintenance',
+          'items', 'notes', 'reviewChecklist', 'maintenanceSupervisorName',
+          'followupSupervisorName', 'managementApprovalName', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'vehicleId', 'serialNumber', 'formStatus',
+          'startDate', 'endDate', 'vehicleSnapshot', 'statusAfterMaintenance',
+          'items', 'notes', 'reviewChecklist', 'maintenanceSupervisorName',
+          'followupSupervisorName', 'managementApprovalName', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && isValidId(data.vehicleId)
+        && data.serialNumber is string && data.serialNumber.size() >= 1 && data.serialNumber.size() <= 64
+        && data.formStatus in ['مفتوح', 'مكتمل']
+        && data.startDate is string && data.startDate.size() <= 32
+        && data.endDate is string && data.endDate.size() <= 32
+        && isValidVehicleSnapshot(data.vehicleSnapshot)
+        && isValidOperationalStatus(data.statusAfterMaintenance)
+        && isValidMaintenanceItemsList(data.items)
+        && data.notes is string && data.notes.size() <= 8000
+        && isValidReviewChecklist(data.reviewChecklist)
+        && data.maintenanceSupervisorName is string && data.maintenanceSupervisorName.size() <= 120
+        && data.followupSupervisorName is string && data.followupSupervisorName.size() <= 120
+        && data.managementApprovalName is string && data.managementApprovalName.size() <= 120
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // 1. Users collection (PII isolated to owner or admin)
+    match /users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (incoming().role == 'supervisor' || isAdmin());
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            request.auth.uid == userId
+            && incoming().role == existing().role
+            && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // 2. Vehicles collection
+    match /vehicles/{vehicleId} {
+      allow get: if isVerifiedUser() && isValidId(vehicleId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser()
+        && isValidId(vehicleId)
+        && isValidVehicle(incoming())
+        && incoming().id == vehicleId
+        && (incoming().ownerId == request.auth.uid || isAdmin())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(vehicleId)
+        && isValidVehicle(incoming())
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().ownerId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'internalCode', 'commonName', 'brandType', 'modelYear',
+              'plateNumber', 'vin', 'engineSerial', 'color', 'seatsCount',
+              'imageUrl', 'operationalStatus', 'notes', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(vehicleId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 3. VehicleMedia fallback collection
+    match /vehicleMedia/{vehicleId} {
+      allow get: if isVerifiedUser() && isValidId(vehicleId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser()
+        && isValidId(vehicleId)
+        && isValidVehicleMedia(incoming())
+        && incoming().vehicleId == vehicleId
+        && (incoming().ownerId == request.auth.uid || isAdmin())
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/vehicles/$(vehicleId));
+      allow update: if isVerifiedUser()
+        && isValidId(vehicleId)
+        && isValidVehicleMedia(incoming())
+        && incoming().vehicleId == existing().vehicleId
+        && incoming().ownerId == existing().ownerId
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().ownerId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['dataUrl', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(vehicleId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 4. MaintenanceForms collection
+    match /maintenanceForms/{formId} {
+      allow get: if isVerifiedUser() && isValidId(formId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser()
+        && isValidId(formId)
+        && isValidMaintenanceForm(incoming())
+        && incoming().id == formId
+        && (incoming().ownerId == request.auth.uid || isAdmin())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/vehicles/$(incoming().vehicleId))
+        && (
+          isAdmin()
+          || get(/databases/$(database)/documents/vehicles/$(incoming().vehicleId)).data.ownerId == request.auth.uid
+        );
+      allow update: if isVerifiedUser()
+        && isValidId(formId)
+        && isValidMaintenanceForm(incoming())
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().vehicleId == existing().vehicleId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().ownerId == request.auth.uid
+            && existing().formStatus != 'مكتمل'
+            && (
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'serialNumber', 'formStatus', 'startDate', 'endDate',
+                'vehicleSnapshot', 'statusAfterMaintenance', 'items', 'notes',
+                'reviewChecklist', 'maintenanceSupervisorName',
+                'followupSupervisorName', 'managementApprovalName', 'updatedAt'
+              ])
+            )
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(formId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+  }
+}

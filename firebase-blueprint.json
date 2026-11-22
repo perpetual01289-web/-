@@ -1,0 +1,293 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Fleet management user profile and role metadata",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "supervisor"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt", "updatedAt"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Fleet vehicle profile for Mony Salah Mohamed Company",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "internalCode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "commonName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "brandType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "modelYear": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "plateNumber": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "vin": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "engineSerial": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "color": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "seatsCount": {
+          "type": "number"
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "operationalStatus": {
+          "type": "string",
+          "enum": [
+            "جاهز للتشغيل",
+            "صالح للتشغيل مع وجود نواقص تجهيز",
+            "تحت الصيانة",
+            "يحتاج إلى تجهيز",
+            "متوقف عن التشغيل"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "internalCode",
+        "commonName",
+        "brandType",
+        "modelYear",
+        "plateNumber",
+        "vin",
+        "engineSerial",
+        "color",
+        "seatsCount",
+        "imageUrl",
+        "operationalStatus",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VehicleMedia": {
+      "title": "VehicleMedia",
+      "description": "Compressed vehicle photo fallback when Firebase Storage is unavailable",
+      "type": "object",
+      "properties": {
+        "vehicleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "dataUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 900000
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["vehicleId", "ownerId", "dataUrl", "updatedAt"]
+    },
+    "MaintenanceForm": {
+      "title": "MaintenanceForm",
+      "description": "Independent vehicle maintenance and preparation form record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "vehicleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "serialNumber": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "formStatus": {
+          "type": "string",
+          "enum": ["مفتوح", "مكتمل"]
+        },
+        "startDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "endDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "vehicleSnapshot": {
+          "type": "object"
+        },
+        "statusAfterMaintenance": {
+          "type": "string",
+          "enum": [
+            "جاهز للتشغيل",
+            "صالح للتشغيل مع وجود نواقص تجهيز",
+            "تحت الصيانة",
+            "يحتاج إلى تجهيز",
+            "متوقف عن التشغيل"
+          ]
+        },
+        "items": {
+          "type": "array"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "reviewChecklist": {
+          "type": "object"
+        },
+        "maintenanceSupervisorName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "followupSupervisorName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "managementApprovalName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "vehicleId",
+        "serialNumber",
+        "formStatus",
+        "startDate",
+        "endDate",
+        "vehicleSnapshot",
+        "statusAfterMaintenance",
+        "items",
+        "notes",
+        "reviewChecklist",
+        "maintenanceSupervisorName",
+        "followupSupervisorName",
+        "managementApprovalName",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profiles isolated by userId"
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": { "$ref": "#/entities/Vehicle" },
+      "description": "Independent vehicle fleet records"
+    },
+    "/vehicleMedia/{vehicleId}": {
+      "schema": { "$ref": "#/entities/VehicleMedia" },
+      "description": "Fallback compressed vehicle images"
+    },
+    "/maintenanceForms/{formId}": {
+      "schema": { "$ref": "#/entities/MaintenanceForm" },
+      "description": "Independent historical and active maintenance forms per vehicle"
+    }
+  }
+}
